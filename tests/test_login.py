@@ -750,6 +750,45 @@ class LoginTestCase(unittest.TestCase):
             self.assertEqual("False", c.get("/is-fresh").data.decode("utf-8"))
             self.assertEqual("True", c.get("/is-remembered").data.decode("utf-8"))
 
+    def test_remember_me_invalid_user_clears_cookie(self):
+        domain = self.app.config["REMEMBER_COOKIE_DOMAIN"] = "localhost"
+        path = self.app.config["REMEMBER_COOKIE_PATH"] = "/"
+        self.app.config["REMEMBER_COOKIE_REFRESH_EACH_REQUEST"] = True
+        with self.app.test_client() as c:
+            c.get("/login-notch-remember")
+            self._delete_session(c)
+
+            @self.login_manager.user_loader
+            def load_missing_user(user_id):
+                return None
+
+            with listen_to(user_loaded_from_cookie) as listener:
+                result = c.get("/username")
+                listener.assert_heard_none()
+
+            self.assertEqual("Anonymous", result.data.decode("utf-8"))
+            # The stale cookie is cleared rather than renewed.
+            self.assertIsNone(c.get_cookie("remember", domain, path))
+            # The session identity was rolled back.
+            with c.session_transaction() as sess:
+                self.assertNotIn("_user_id", sess)
+            # And it stays logged out on subsequent requests.
+            result = c.get("/username")
+            self.assertEqual("Anonymous", result.data.decode("utf-8"))
+
+    def test_session_with_invalid_user_is_rolled_back(self):
+        with self.app.test_client() as c:
+            c.get("/login-notch-remember")
+
+            @self.login_manager.user_loader
+            def load_missing_user(user_id):
+                return None
+
+            result = c.get("/username")
+            self.assertEqual("Anonymous", result.data.decode("utf-8"))
+            with c.session_transaction() as sess:
+                self.assertNotIn("_user_id", sess)
+
     def test_user_loaded_from_cookie_fired(self):
         with self.app.test_client() as c:
             c.get("/login-notch-remember")

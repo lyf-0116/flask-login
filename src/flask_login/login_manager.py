@@ -320,7 +320,7 @@ class LoginManager:
         # Load user from Flask Session
         user_id = session.get("_user_id")
         if user_id is not None and self._user_callback is not None:
-            user = self._user_callback(user_id)
+            user = self._load_user_from_id(user_id)
 
         # Load user from Remember Me Cookie or Request Loader
         if user is None:
@@ -370,12 +370,28 @@ class LoginManager:
             session["_fresh"] = False
             user = None
             if self._user_callback:
-                user = self._user_callback(user_id)
+                user = self._load_user_from_id(user_id)
             if user is not None:
                 app = current_app._get_current_object()
                 user_loaded_from_cookie.send(app, user=user)
                 return user
         return None
+
+    def _load_user_from_id(self, user_id):
+        """Resolve a ``user_id`` through the user_loader callback.
+
+        If the id no longer resolves to a valid account (e.g. it was
+        deleted or deactivated), the session identity is rolled back and
+        the remember cookie is marked for clearing, so that it is not
+        renewed with a fresh expiry on this response.
+        """
+
+        user = self._user_callback(user_id)
+        if user is None:
+            session.pop("_user_id", None)
+            session.pop("_fresh", None)
+            session["_remember"] = "clear"
+        return user
 
     def _load_user_from_request(self, request):
         if self._request_callback:
