@@ -31,14 +31,12 @@ REFRESH_MESSAGE_CATEGORY = "message"
 #: The default attribute to retrieve the str id of the user
 ID_ATTRIBUTE = "get_id"
 
-#: A set of session keys that are populated by Flask-Login. Use this set to
-#: purge keys safely and accurately.
-SESSION_KEYS = {
-    "_user_id",
-    "_remember",
-    "_remember_seconds",
-    "_id",
-    "_fresh",
+#: A set of session keys that are preserved when the session is cleared, for
+#: example by ``logout_user`` or ``"strong"`` session protection. Everything
+#: else in the session is deleted. This keeps flashed messages and the
+#: ``next`` redirect target available across the logout.
+SESSION_PRESERVE_KEYS = {
+    "_flashes",
     "next",
 }
 

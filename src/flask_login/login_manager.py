@@ -20,7 +20,6 @@ from .config import LOGIN_MESSAGE
 from .config import LOGIN_MESSAGE_CATEGORY
 from .config import REFRESH_MESSAGE
 from .config import REFRESH_MESSAGE_CATEGORY
-from .config import SESSION_KEYS
 from .config import USE_SESSION_FOR_NEXT
 from .mixins import AnonymousUserMixin
 from .signals import session_protected
@@ -29,6 +28,7 @@ from .signals import user_loaded_from_cookie
 from .signals import user_loaded_from_request
 from .signals import user_needs_refresh
 from .signals import user_unauthorized
+from .utils import _clear_session
 from .utils import _create_identifier
 from .utils import _user_context_processor
 from .utils import decode_cookie
@@ -354,9 +354,7 @@ class LoginManager:
                 session_protected.send(app)
                 return False
             elif mode == "strong":
-                for k in SESSION_KEYS:
-                    sess.pop(k, None)
-
+                _clear_session(sess)
                 sess["_remember"] = "clear"
                 session_protected.send(app)
                 return True

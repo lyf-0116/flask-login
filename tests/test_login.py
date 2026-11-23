@@ -584,6 +584,18 @@ class LoginTestCase(unittest.TestCase):
             result = c.get("/username")
             self.assertEqual(result.data.decode("utf-8"), "Anonymous")
 
+    def test_logout_clears_session_except_preserved_keys(self):
+        with self.app.test_client() as c:
+            c.get("/login-notch")
+            with c.session_transaction() as sess:
+                sess["foo"] = "bar"
+                sess["next"] = "/secret"
+            c.get("/logout")
+            with c.session_transaction() as sess:
+                self.assertNotIn("foo", sess)
+                self.assertNotIn("_user_id", sess)
+                self.assertEqual("/secret", sess["next"])
+
     def test_incorrect_id_logs_out(self):
         # Ensure that any attempt to reload the user by the ID
         # will seem as if the user is no longer valid
@@ -987,16 +999,29 @@ class LoginTestCase(unittest.TestCase):
     def test_session_protection_strong_deletes_session(self):
         self.app.config["SESSION_PROTECTION"] = "strong"
         with self.app.test_client() as c:
-            # write some unrelated data in the session, to ensure it does not
-            # get destroyed
+            # write some unrelated data in the session, to ensure it gets
+            # destroyed along with the rest of the session
             with c.session_transaction() as sess:
                 sess["foo"] = "bar"
             c.get("/login-notch-remember")
             username_result = c.get("/username", headers=[("User-Agent", "different")])
             self.assertEqual("Anonymous", username_result.data.decode("utf-8"))
             with c.session_transaction() as sess:
-                self.assertIn("foo", sess)
-                self.assertEqual("bar", sess["foo"])
+                self.assertNotIn("foo", sess)
+
+    def test_session_protection_strong_preserves_flashes_and_next(self):
+        self.app.config["SESSION_PROTECTION"] = "strong"
+        with self.app.test_client() as c:
+            with c.session_transaction() as sess:
+                sess["_flashes"] = [["message", "hello"]]
+                sess["next"] = "/secret"
+                sess["foo"] = "bar"
+            c.get("/login-notch-remember")
+            c.get("/username", headers=[("User-Agent", "different")])
+            with c.session_transaction() as sess:
+                self.assertEqual([["message", "hello"]], sess["_flashes"])
+                self.assertEqual("/secret", sess["next"])
+                self.assertNotIn("foo", sess)
 
     def test_session_protection_strong_fires_signal_user_agent(self):
         self.app.config["SESSION_PROTECTION"] = "strong"

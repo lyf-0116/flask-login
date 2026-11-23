@@ -169,6 +169,9 @@ When the user is ready to log out::
         return redirect(somewhere)
 
 They will be logged out, and any cookies for their session will be cleaned up.
+The entire session is cleared, except for the keys in
+``SESSION_PRESERVE_KEYS`` (flashed messages and the ``next`` redirect
+target), so no application data stored in the session survives the logout.
 
 
 
@@ -417,7 +420,9 @@ effect.)
 
 If the identifiers do not match in `strong` mode for a non-permanent session,
 then the entire session (as well as the remember token if it exists) is
-deleted.
+deleted. Only the keys in ``SESSION_PRESERVE_KEYS`` — flashed messages and
+the ``next`` redirect target — are kept, so the login redirect can still
+display a message and return the user to the page they asked for.
 
 
 Disabling Session Cookie for APIs

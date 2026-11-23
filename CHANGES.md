@@ -10,6 +10,14 @@ Unreleased
 - Bump to Flask >= 2.3.0.
 - Bump to Werkzeug >= 2.3.2.
 - Remove previously deprecated code. #694
+- ``logout_user`` and ``"strong"`` session protection now share one cleanup
+  path that clears the entire session instead of only removing Flask-Login's
+  own keys, so application data tied to the session (user id, roles, tenants,
+  etc.) can no longer survive an active or forced logout. Keys listed in the
+  new ``SESSION_PRESERVE_KEYS`` constant (flashed messages and the ``next``
+  redirect target) are preserved across the clear. The ``SESSION_KEYS``
+  constant is removed. Applications that stored data in the session which must
+  survive logout should move it out of the session or re-set it after logout.
 - Deprecate the `__about__` module and `__version__` attribute. Use `importlib.metadata`
   to get library information instead. #701
 - Use modern `pyproject.toml` project metadata. Use flit_core instead of setuptools as

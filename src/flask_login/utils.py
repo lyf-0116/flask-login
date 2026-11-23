@@ -16,6 +16,7 @@ from werkzeug.local import LocalProxy
 
 from .config import COOKIE_NAME
 from .config import EXEMPT_METHODS
+from .config import SESSION_PRESERVE_KEYS
 from .signals import user_logged_in
 from .signals import user_logged_out
 from .signals import user_login_confirmed
@@ -204,30 +205,34 @@ def login_user(user, remember=False, duration=None, force=False, fresh=True):
 def logout_user():
     """
     Logs a user out. (You do not need to pass the actual user.) This will
-    also clean up the remember me cookie if it exists.
+    also clean up the remember me cookie if it exists. The entire session is
+    cleared, except for the keys in ``SESSION_PRESERVE_KEYS``.
     """
 
     user = _get_user()
 
-    if "_user_id" in session:
-        session.pop("_user_id")
-
-    if "_fresh" in session:
-        session.pop("_fresh")
-
-    if "_id" in session:
-        session.pop("_id")
+    _clear_session(session)
 
     cookie_name = current_app.config.get("REMEMBER_COOKIE_NAME", COOKIE_NAME)
     if cookie_name in request.cookies:
         session["_remember"] = "clear"
-        if "_remember_seconds" in session:
-            session.pop("_remember_seconds")
 
     user_logged_out.send(current_app._get_current_object(), user=user)
 
     current_app.login_manager._update_request_context_with_user()
     return True
+
+
+def _clear_session(sess):
+    """
+    Clear the session, preserving only the keys in ``SESSION_PRESERVE_KEYS``
+    (flashed messages and the ``next`` redirect target). Used by both
+    ``logout_user`` and ``"strong"`` session protection so that every logout
+    path invalidates the whole session consistently.
+    """
+    preserved = {key: sess[key] for key in SESSION_PRESERVE_KEYS if key in sess}
+    sess.clear()
+    sess.update(preserved)
 
 
 def confirm_login():
