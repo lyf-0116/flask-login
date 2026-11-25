@@ -354,10 +354,12 @@ class LoginManager:
                 session_protected.send(app)
                 return False
             elif mode == "strong":
-                for k in SESSION_KEYS:
-                    sess.pop(k, None)
+                for k, action in SESSION_KEYS.items():
+                    if action == "set":
+                        sess[k] = "clear"
+                    else:
+                        sess.pop(k, None)
 
-                sess["_remember"] = "clear"
                 session_protected.send(app)
                 return True
 

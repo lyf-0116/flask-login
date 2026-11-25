@@ -18,6 +18,11 @@ Unreleased
 - Never look at the `X-Forwarded-For` header, always use `request.remote_addr`,
   requiring the developer to configure `ProxyFix` appropriately. #700
 - Remove `LOGIN_DISABLED` config. #697
+- `SESSION_KEYS` is now a dict mapping each session key to its purge action
+  (`"pop"` or `"set"`) instead of a set, so that `logout_user` and strong
+  session protection share one cleanup implementation. `logout_user` now also
+  removes the `next` session key, so a stored post-login redirect target does
+  not leak to the next user of the same browser.
 
 
 Version 0.6.3

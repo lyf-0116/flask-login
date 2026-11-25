@@ -31,15 +31,17 @@ REFRESH_MESSAGE_CATEGORY = "message"
 #: The default attribute to retrieve the str id of the user
 ID_ATTRIBUTE = "get_id"
 
-#: A set of session keys that are populated by Flask-Login. Use this set to
-#: purge keys safely and accurately.
+#: A dict of session keys that are populated by Flask-Login, mapped to the
+#: action used to purge them: ``"pop"`` removes the key from the session,
+#: while ``"set"`` marks the key so that the corresponding remember cookie is
+#: cleared. Use this dict to purge keys safely and accurately.
 SESSION_KEYS = {
-    "_user_id",
-    "_remember",
-    "_remember_seconds",
-    "_id",
-    "_fresh",
-    "next",
+    "_user_id": "pop",
+    "_remember": "set",
+    "_remember_seconds": "pop",
+    "_id": "pop",
+    "_fresh": "pop",
+    "next": "pop",
 }
 
 #: A set of HTTP methods which are exempt from `login_required` and

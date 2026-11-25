@@ -584,6 +584,25 @@ class LoginTestCase(unittest.TestCase):
             result = c.get("/username")
             self.assertEqual(result.data.decode("utf-8"), "Anonymous")
 
+    def test_logout_clears_next_in_session(self):
+        self.login_manager.login_view = "login"
+        self.app.config["USE_SESSION_FOR_NEXT"] = True
+
+        @self.app.route("/login")
+        def login():
+            return "Login Form Goes Here!"
+
+        @self.app.route("/has-next")
+        def has_next():
+            return str("next" in session)
+
+        with self.app.test_client() as c:
+            c.get("/secret")
+            c.get("/login-notch")
+            self.assertEqual(c.get("/has-next").data.decode("utf-8"), "True")
+            c.get("/logout")
+            self.assertEqual(c.get("/has-next").data.decode("utf-8"), "False")
+
     def test_incorrect_id_logs_out(self):
         # Ensure that any attempt to reload the user by the ID
         # will seem as if the user is no longer valid

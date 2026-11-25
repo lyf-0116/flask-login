@@ -16,6 +16,7 @@ from werkzeug.local import LocalProxy
 
 from .config import COOKIE_NAME
 from .config import EXEMPT_METHODS
+from .config import SESSION_KEYS
 from .signals import user_logged_in
 from .signals import user_logged_out
 from .signals import user_login_confirmed
@@ -209,20 +210,15 @@ def logout_user():
 
     user = _get_user()
 
-    if "_user_id" in session:
-        session.pop("_user_id")
-
-    if "_fresh" in session:
-        session.pop("_fresh")
-
-    if "_id" in session:
-        session.pop("_id")
-
     cookie_name = current_app.config.get("REMEMBER_COOKIE_NAME", COOKIE_NAME)
-    if cookie_name in request.cookies:
-        session["_remember"] = "clear"
-        if "_remember_seconds" in session:
-            session.pop("_remember_seconds")
+    has_remember_cookie = cookie_name in request.cookies
+
+    for key, action in SESSION_KEYS.items():
+        if action == "set":
+            if has_remember_cookie:
+                session[key] = "clear"
+        else:
+            session.pop(key, None)
 
     user_logged_out.send(current_app._get_current_object(), user=user)
 
